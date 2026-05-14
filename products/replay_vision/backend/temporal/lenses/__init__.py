@@ -5,6 +5,7 @@ from typing import Annotated
 from pydantic import Field, TypeAdapter
 
 from products.replay_vision.backend.models.replay_lens import ReplayLens
+from products.replay_vision.backend.models.replay_observation import ReplayObservation
 from products.replay_vision.backend.temporal.lenses.base import BaseLens, BaseLensOutput
 from products.replay_vision.backend.temporal.lenses.classifier import ClassifierLens, ClassifierOutput
 from products.replay_vision.backend.temporal.lenses.indexer import IndexerLens, IndexerOutput
@@ -27,6 +28,15 @@ def lens_from_db(replay_lens: ReplayLens) -> AnyLens:
     )
 
 
+def lens_from_observation(observation: ReplayObservation) -> AnyLens:
+    """Build the lens from `observation.lens_config_snapshot` so a mid-flight lens edit can't switch the prompt/schema under us."""
+    # TODO: also snapshot `lens_type` + `emits_signals` on `ReplayObservation` for full snapshot fidelity.
+    lens = observation.lens
+    return _LENS_ADAPTER.validate_python(
+        {**observation.lens_config_snapshot, "lens_type": lens.lens_type, "emits_signals": lens.emits_signals}
+    )
+
+
 __all__ = [
     "AnyLens",
     "BaseLens",
@@ -43,4 +53,5 @@ __all__ = [
     "SummarizerLens",
     "SummarizerOutput",
     "lens_from_db",
+    "lens_from_observation",
 ]
